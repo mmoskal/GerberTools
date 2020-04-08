@@ -302,10 +302,6 @@ namespace GerberLibrary.Core
             if (DeviceTree[ID].ContainsKey(value) == false) DeviceTree[ID][value] = new BOMEntry() { Name = device, Value = value, PackageName = package };
             BOMEntry BE = DeviceTree[ID][value];
             return BE.AddRef(refdes, SourceBoard, set, x, y, angle, side);
-
-
-
-
         }
 
         private string GetID(string package, string device, string refdes)
@@ -862,6 +858,14 @@ namespace GerberLibrary.Core
                 return R;
             }
 
+            if (File.Exists(Path.Combine(gerberPath, "jlcsmt_bom.csv")))
+            {
+                BOM R = new BOM();
+                R.LoadJLC(Path.Combine(gerberPath, "jlcsmt_bom.csv"),
+                    Path.Combine(gerberPath, "jlcsmt_pnp.csv"));
+                return R;
+            }
+
             return null;
 
 
@@ -1099,7 +1103,7 @@ namespace GerberLibrary.Core
                     {
                         V = v.MfgPartNumber;
                     }
-                    string line = String.Format("{0},{1},{2},{3}",V,refdescs,v.PackageName,v.MfgPartNumber);
+                    string line = String.Format("{0},{1},{2},{3}",V,refdescs,v.PackageName,v.Name);
                     outlinesBOM.Add(line);
 
                 }
@@ -1203,7 +1207,7 @@ namespace GerberLibrary.Core
                 var rd = items[0];
                 var X = ConvertDimension(items[1]);
                 var Y= ConvertDimension(items[2]);
-                var Side = items[3] == "T" ? BoardSide.Top : BoardSide.Bottom;
+                var Side = items[3][0] == 'T' ? BoardSide.Top : BoardSide.Bottom;
                 var Angle= Double.Parse(items[4]);
 
                 positions[rd] = new BOMEntry.RefDesc() { angle = Angle, x = X, y = Y, OriginalName = rd, NameOnBoard = rd, SourceBoard = bOMFile, Side = Side };
@@ -1217,7 +1221,7 @@ namespace GerberLibrary.Core
                 List<string> items = new List<string>();
                 foreach (Match m in regex.Matches(s))
                 {
-                    items.Add(m.Value.Trim());
+                    items.Add(m.Value.Trim().Replace("\uFEFF", ""));
                 }
 
                 var refdesc = items[1].Trim(); ;
@@ -1225,17 +1229,21 @@ namespace GerberLibrary.Core
                 {
                     refdesc = refdesc.Substring(1, refdesc.Length - 2);
                 }
+
                 var rd = refdesc.Split(',');
+
+                if (refdesc.Trim().Length == 0) continue;
 
                 var value = items[0];
                 var package = items[2];
+                var lcscNum = items[3];
 
 
                 foreach (var rd_ in rd)
                 {
                     var S = positions[rd_.Trim()];
 
-                    AddBOMItemExt(package, "", value, rd_, Set, bOMFile, S.x, S.y, S.angle, S.Side);
+                    AddBOMItemExt(package, lcscNum, value, rd_.Trim(), Set, bOMFile, S.x, S.y, S.angle, S.Side);
                 }
 
 
@@ -1251,8 +1259,8 @@ namespace GerberLibrary.Core
                 v = v.Substring(0, v.Length - 2).Trim(); ;
 
             }
-
-            return double.Parse(v.Replace('.',','));
+            
+            return double.Parse(v.Replace(',','.'), System.Globalization.CultureInfo.InvariantCulture);
         }
 
         public int GetSolderedPartCount(List<string> toIgnore)

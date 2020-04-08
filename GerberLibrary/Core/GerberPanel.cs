@@ -1683,7 +1683,7 @@ namespace GerberLibrary
                 }
             }
 
-            if (GenerateImages)
+            if (false&&GenerateImages)
             {
                 try
                 {
@@ -2236,6 +2236,8 @@ namespace GerberLibrary
 
                 MasterBom.SaveBom(BomFile);
                 MasterBom.SaveCentroids(CentroidFile);
+
+                MasterBom.WriteJLCCSV(OutputFolder, "JLCSMT");
 
                 //                GeneratedFiles.Add(CentroidFile);
                 //              GeneratedFiles.Add(BomFile);
